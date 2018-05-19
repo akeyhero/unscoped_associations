@@ -44,10 +44,12 @@ describe UnscopedAssociations do
       expect(user.unscoped_comments).to eq([comment])
     end
 
-    it 'unscoped accepts force_reload' do
-      comments_count = user.unscoped_comments.to_a.count
-      Comment.create(unscoped_user: user, public: false)
-      expect(user.unscoped_comments(true).to_a.count).to eq(comments_count + 1)
+    if Gem::Version.new(ActiveRecord::VERSION::STRING) < Gem::Version.new('5.1.0')
+      it 'unscoped accepts force_reload when AR < 5.1' do
+        comments_count = user.unscoped_comments.to_a.count
+        Comment.create(unscoped_user: user, public: false)
+        expect(user.unscoped_comments(true).to_a.count).to eq(comments_count + 1)
+      end
     end
 
     it 'unscoped with an extension' do
