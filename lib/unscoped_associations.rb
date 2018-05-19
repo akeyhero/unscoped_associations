@@ -32,7 +32,7 @@ module UnscopedAssociations
       end
 
       if options.delete(:unscoped)
-        add_unscoped_association(assoc_name)
+        add_unscoped_association(assoc_type, assoc_name)
       end
 
       if scope
@@ -42,15 +42,29 @@ module UnscopedAssociations
       end
     end
 
-    def add_unscoped_association(association_name)
+    def add_unscoped_association(association_type, association_name)
       define_method(association_name) do |*args|
         force_reload = args[0]
-        if !force_reload && instance_variable_get("@_cache_#{association_name}")
-          instance_variable_get("@_cache_#{association_name}")
+        if force_reload == nil && ActiveRecord::VERSION::MAJOR >= 5
+          if instance_variable_get("@_cache_#{association_name}")
+            instance_variable_get("@_cache_#{association_name}")
+          else
+            instance_variable_set(
+              "@_cache_#{association_name}",
+              association(association_name).klass.unscoped do
+                association_type == :has_many ? super().reload : public_send("reload_#{association_name}")
+              end
+            )
+          end
         else
-          instance_variable_set("@_cache_#{association_name}",
-            association(association_name).klass.unscoped { super(true) }
-          )
+          if !force_reload && instance_variable_get("@_cache_#{association_name}")
+            instance_variable_get("@_cache_#{association_name}")
+          else
+            instance_variable_set(
+              "@_cache_#{association_name}",
+              association(association_name).klass.unscoped { super(true) }
+            )
+          end
         end
       end
     end
